@@ -152,6 +152,18 @@ class BasePaymentProvider:
                  label=_('Enable payment method'),
                  required=False,
              )),
+            ('_block_individual_customers',
+             forms.BooleanField(
+                 label=_('Block for individual customers'),
+                 help_text=_('If enabled, customers who selected \'individual\' in the invoice form wont see this payment method.'),
+                 required=False
+             )),
+            ('_block_business_customers',
+             forms.BooleanField(
+                 label=_('Block for business customers'),
+                 help_text=_('If enabled, customers who selected \'business\' in the invoice form wont see this payment method.'),
+                 required=False
+             )),
             ('_fee_abs',
              forms.DecimalField(
                  label=_('Additional fee'),
@@ -283,6 +295,19 @@ class BasePaymentProvider:
 
         return True
 
+    def _is_allowed_for_customer_type(self, request: HttpRequest):
+        if not self.event.settings.get('invoice_address_asked', as_type=bool):
+            return True
+        if not hasattr(request, '_checkout_flow_invoice_address'):
+            return True
+        block_indi = self.settings.get('_block_individual_customers', as_type=bool)
+        block_busi = self.settings.get('_block_business_customers', as_type=bool)
+        is_business = request._checkout_flow_invoice_address.is_business 
+        if is_business:
+            return not block_busi
+        else:
+            return not block_indi
+
     def is_allowed(self, request: HttpRequest) -> bool:
         """
         You can use this method to disable this payment provider for certain groups
@@ -292,7 +317,7 @@ class BasePaymentProvider:
 
         The default implementation checks for the _availability_date setting to be either unset or in the future.
         """
-        return self._is_still_available(cart_id=get_or_create_cart_id(request))
+        return self._is_still_available(cart_id=get_or_create_cart_id(request)) and self._is_allowed_for_customer_type(request)
 
     def payment_form_render(self, request: HttpRequest) -> str:
         """
