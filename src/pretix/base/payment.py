@@ -295,14 +295,17 @@ class BasePaymentProvider:
 
         return True
 
-    def _is_allowed_for_customer_type(self, request: HttpRequest):
+    def _is_allowed_for_customer_type(self, request=None, order=None):
         if not self.event.settings.get('invoice_address_asked', as_type=bool):
             return True
-        if not hasattr(request, '_checkout_flow_invoice_address'):
+        if request and not hasattr(request, '_checkout_flow_invoice_address'):
             return True
         block_indi = self.settings.get('_block_individual_customers', as_type=bool)
         block_busi = self.settings.get('_block_business_customers', as_type=bool)
-        is_business = request._checkout_flow_invoice_address.is_business 
+        if order:
+            is_business = order.invoice_address.is_business
+        else:
+            is_business = request._checkout_flow_invoice_address.is_business
         if is_business:
             return not block_busi
         else:
@@ -317,7 +320,7 @@ class BasePaymentProvider:
 
         The default implementation checks for the _availability_date setting to be either unset or in the future.
         """
-        return self._is_still_available(cart_id=get_or_create_cart_id(request)) and self._is_allowed_for_customer_type(request)
+        return self._is_still_available(cart_id=get_or_create_cart_id(request)) and self._is_allowed_for_customer_type(request=request)
 
     def payment_form_render(self, request: HttpRequest) -> str:
         """
@@ -455,7 +458,7 @@ class BasePaymentProvider:
 
         :param order: The order object
         """
-        return self._is_still_available(order=order)
+        return self._is_still_available(order=order) and self._is_allowed_for_customer_type(order=order)
 
     def order_can_retry(self, order: Order) -> bool:
         """
