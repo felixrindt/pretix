@@ -159,6 +159,11 @@ class EventMixin:
 
         return safe_string(json.dumps(eventdict))
 
+    @cached_property
+    def admission_products_available(self):
+        from .items import Item, ItemVariation, Quota
+        return any(Quota.AVAILABILITY_OK == item.check_quotas(subevent=self)[0] for item in self.items.filter(admission=True).all())
+
 
 @settings_hierarkey.add(parent_field='organizer', cache_namespace='event')
 class Event(EventMixin, LoggedModel):

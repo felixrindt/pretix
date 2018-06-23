@@ -17,7 +17,13 @@
             </div>
             <div class="col-md-2 text-right">
                 {% if subev.presale_is_running %}
-                    <span class="label label-success">{% trans "Tickets on sale" %}</span>
+                    {% if subev.admission_products_available %}
+                        <span class="label label-success">{% trans "Tickets on sale" %}</span>
+                    {% elif subev.event.settings.waiting_list_enabled %}
+                    <span class="label label-warning">{% trans "Waiting list" %}</span>
+                    {% else %}
+                        <span class="label label-warning">{% trans "Currently unavailable" %}</span>
+                    {% endif %}
                 {% elif subev.presale_has_ended %}
                     <span class="label label-danger">{% trans "Sale over" %}</span>
                 {% elif event.settings.presale_start_show_date %}
